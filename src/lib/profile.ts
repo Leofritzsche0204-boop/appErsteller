@@ -1,5 +1,6 @@
 // Lesen und Speichern von Profil und Fixkosten in Supabase.
 
+import { toNumber } from './db';
 import { supabase } from './supabase';
 import type { WageMode, WageSettings } from './wage';
 
@@ -34,13 +35,6 @@ type FixedCostRow = {
 
 const PROFILE_COLUMNS =
   'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at';
-
-// Postgres-"numeric" kann als Text ankommen, daher immer umwandeln.
-function toNumber(value: number | string | null): number | null {
-  if (value == null) return null;
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 function mapProfile(row: ProfileRow): Profile {
   return {

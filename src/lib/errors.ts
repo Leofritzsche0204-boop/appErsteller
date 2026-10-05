@@ -16,6 +16,12 @@ export function friendlyError(error: unknown): string {
   if (code === 'PGRST205' || code === '42P01' || /could not find the table|does not exist/i.test(message)) {
     return 'Die Datenbank ist noch nicht eingerichtet. Bitte das SQL-Skript aus supabase/migrations im Supabase SQL Editor ausführen.';
   }
+  if (/wage_not_configured/.test(message)) {
+    return 'Bitte richte zuerst deinen Lohn in den Einstellungen ein.';
+  }
+  if (/cannot_move_back_to_wishlist/.test(message)) {
+    return 'Entschiedene Einträge können nicht zurück auf die Wunschliste.';
+  }
   if (code === '23514') {
     return 'Ein Wert liegt außerhalb des erlaubten Bereichs.';
   }
