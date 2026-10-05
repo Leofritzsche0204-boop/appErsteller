@@ -84,6 +84,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const loadId = useRef(0);
+  // Für welches Konto sind Profil & Fixkosten gerade geladen?
+  const loadedUserId = useRef<string | null>(null);
 
   // Startet das Laden. State wird erst in den Callbacks gesetzt, wenn die Daten da sind.
   const load = useCallback(() => {
@@ -92,6 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       (result) => {
         if (id !== loadId.current) return; // ein neuerer Ladevorgang läuft bereits
         setSession(result.session);
+        loadedUserId.current = result.session.user.id;
         setProfile(result.profile);
         setFixedCosts(result.fixedCosts);
         setStatus('ready');
@@ -115,6 +118,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     load();
     const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      // Anderes Konto angemeldet (z. B. über "Passwort vergessen"): Profil neu laden.
+      const newId = newSession?.user.id ?? null;
+      if (newId && loadedUserId.current && newId !== loadedUserId.current) {
+        loadedUserId.current = newId;
+        load();
+      }
     });
     return () => data.subscription.unsubscribe();
   }, [load]);

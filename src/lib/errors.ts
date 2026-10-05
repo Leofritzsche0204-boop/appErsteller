@@ -2,7 +2,11 @@
 
 type ErrorLike = { message?: unknown; code?: unknown };
 
+/** Fehler mit einer Meldung, die direkt so angezeigt werden darf. */
+export class UserFacingError extends Error {}
+
 export function friendlyError(error: unknown): string {
+  if (error instanceof UserFacingError) return error.message;
   const e = (error ?? {}) as ErrorLike;
   const message = typeof e.message === 'string' ? e.message : '';
   const code = typeof e.code === 'string' ? e.code : '';
@@ -15,6 +19,28 @@ export function friendlyError(error: unknown): string {
   }
   if (code === 'PGRST205' || code === '42P01' || /could not find the table|does not exist/i.test(message)) {
     return 'Die Datenbank ist noch nicht eingerichtet. Bitte das SQL-Skript aus supabase/migrations im Supabase SQL Editor ausführen.';
+  }
+  // Anmeldung
+  if (code === 'invalid_credentials' || /invalid login credentials/i.test(message)) {
+    return 'E-Mail oder Passwort stimmt nicht.';
+  }
+  if (code === 'email_exists' || code === 'user_already_exists' || /already (been )?registered/i.test(message)) {
+    return 'Diese E-Mail-Adresse gehört schon zu einem Konto. Melde dich stattdessen an.';
+  }
+  if (code === 'otp_expired' || /token has expired or is invalid|otp.*(expired|invalid)/i.test(message)) {
+    return 'Der Code ist falsch oder abgelaufen. Fordere bei Bedarf einen neuen an.';
+  }
+  if (code === 'weak_password' || /password should be|weak password/i.test(message)) {
+    return 'Das Passwort ist zu schwach. Nimm mindestens 8 Zeichen mit Buchstaben und Zahlen.';
+  }
+  if (code === 'same_password' || /different from the old password/i.test(message)) {
+    return 'Das neue Passwort muss sich vom alten unterscheiden.';
+  }
+  if (code === 'email_address_invalid' || /email address .* is invalid|invalid email/i.test(message)) {
+    return 'Diese E-Mail-Adresse ist ungültig.';
+  }
+  if (/email rate limit|over_email_send_rate_limit/i.test(message) || code === 'over_email_send_rate_limit') {
+    return 'Es wurden gerade zu viele E-Mails verschickt. Bitte warte etwas und versuche es dann erneut.';
   }
   if (/wage_not_configured/.test(message)) {
     return 'Bitte richte zuerst deinen Lohn in den Einstellungen ein.';

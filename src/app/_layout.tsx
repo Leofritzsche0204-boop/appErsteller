@@ -38,6 +38,12 @@ export default function RootLayout() {
               <Stack.Screen name="onboarding/lohn" options={{ title: 'Dein Lohn', headerBackTitle: 'Zurück' }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="einstellungen" options={{ title: 'Einstellungen', headerBackTitle: 'Zurück' }} />
+              <Stack.Screen name="konto/sichern" options={{ title: 'Konto sichern', headerBackTitle: 'Zurück' }} />
+              <Stack.Screen name="konto/anmelden" options={{ title: 'Anmelden', headerBackTitle: 'Zurück' }} />
+              <Stack.Screen
+                name="konto/passwort-vergessen"
+                options={{ title: 'Passwort vergessen', headerBackTitle: 'Zurück' }}
+              />
               <Stack.Screen
                 name="ziel-neu"
                 options={{ title: 'Neues Sparziel', presentation: 'modal', headerBackTitle: 'Zurück' }}

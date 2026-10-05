@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -61,6 +61,9 @@ export default function Welcome() {
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button title="Los geht's" onPress={onContinue} disabled={!ageConfirmed} loading={saving} />
+          <Link href="/konto/anmelden" style={styles.login}>
+            Ich habe schon ein Konto – anmelden
+          </Link>
         </View>
       }
     >
@@ -97,4 +100,5 @@ const styles = StyleSheet.create({
   note: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   footer: { gap: spacing.md },
   error: { color: colors.danger, fontSize: 14 },
+  login: { color: colors.accent, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
 });

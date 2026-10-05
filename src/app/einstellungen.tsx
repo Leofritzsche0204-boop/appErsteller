@@ -1,16 +1,87 @@
-import { router } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { Link, router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Share, StyleSheet, Text, View } from 'react-native';
 
 import { BudgetForm } from '../components/BudgetForm';
+import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Screen } from '../components/Screen';
 import { WageForm } from '../components/WageForm';
 import { colors, spacing } from '../components/theme';
+import { deleteMyAccount, exportMyData, signOut } from '../lib/account';
+import { friendlyError } from '../lib/errors';
+import { useRestartApp } from '../lib/useSwitchAccount';
 import { useApp } from '../state/AppProvider';
 
 export default function Settings() {
   const { session } = useApp();
+  const restart = useRestartApp();
+  const [busy, setBusy] = useState<'export' | 'delete' | 'signout' | null>(null);
   const isAnonymous = session?.user.is_anonymous ?? true;
+  const pendingEmail = session?.user.new_email ?? null;
+
+  const onExport = async () => {
+    setBusy('export');
+    try {
+      const json = await exportMyData();
+      await Share.share({ title: 'Time is Money – meine Daten', message: json });
+    } catch (e) {
+      Alert.alert('Export fehlgeschlagen', friendlyError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onSignOut = () => {
+    Alert.alert('Abmelden?', 'Du kannst dich jederzeit mit E-Mail und Passwort wieder anmelden.', [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: 'Abmelden',
+        onPress: async () => {
+          setBusy('signout');
+          try {
+            await signOut();
+            restart();
+          } catch (e) {
+            Alert.alert('Abmelden fehlgeschlagen', friendlyError(e));
+            setBusy(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const onDelete = () => {
+    Alert.alert(
+      'Konto wirklich löschen?',
+      'Alle deine Daten – Lohn, Einträge, Wunschliste, Ziele – werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Weiter',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Letzte Bestätigung', 'Konto und alle Daten jetzt endgültig löschen?', [
+              { text: 'Abbrechen', style: 'cancel' },
+              {
+                text: 'Endgültig löschen',
+                style: 'destructive',
+                onPress: async () => {
+                  setBusy('delete');
+                  try {
+                    await deleteMyAccount();
+                    restart();
+                  } catch (e) {
+                    Alert.alert('Löschen fehlgeschlagen', friendlyError(e));
+                    setBusy(null);
+                  }
+                },
+              },
+            ]),
+        },
+      ],
+    );
+  };
 
   return (
     <Screen edges={['bottom']}>
@@ -27,11 +98,39 @@ export default function Settings() {
 
       <Text style={styles.section}>Konto</Text>
       <Card>
-        <Text style={styles.body}>
-          {isAnonymous
-            ? 'Du nutzt die App ohne Konto. Deine Daten hängen an diesem Gerät. Bald kannst du hier dein Konto mit E-Mail, Google oder Apple sichern.'
-            : `Angemeldet als ${session?.user.email ?? 'Nutzer'}.`}
-        </Text>
+        {isAnonymous ? (
+          <View style={styles.stack}>
+            <Text style={styles.body}>
+              {pendingEmail
+                ? `Fast geschafft: Bestätige noch den Code, den wir an ${pendingEmail} geschickt haben.`
+                : '⚠️ Dein Konto ist noch nicht gesichert. Deine Daten hängen an diesem Handy und gehen bei einer Neuinstallation verloren.'}
+            </Text>
+            <Button
+              title={pendingEmail ? 'Weiter mit dem Code' : '🔒 Konto sichern'}
+              onPress={() => router.push('/konto/sichern')}
+            />
+            <Link href="/konto/anmelden" style={styles.link}>
+              Ich habe schon ein Konto – anmelden
+            </Link>
+          </View>
+        ) : (
+          <View style={styles.stack}>
+            <Text style={styles.body}>🔒 Angemeldet als {session?.user.email ?? 'Nutzer'}</Text>
+            <Button title="Abmelden" variant="secondary" onPress={onSignOut} loading={busy === 'signout'} />
+          </View>
+        )}
+      </Card>
+
+      <Text style={styles.section}>Deine Daten</Text>
+      <Card>
+        <View style={styles.stack}>
+          <Text style={styles.muted}>
+            Deine Daten liegen verschlüsselt übertragen auf Servern in der EU (Frankfurt) und sind nur
+            für dich sichtbar.
+          </Text>
+          <Button title="Daten exportieren" variant="secondary" onPress={onExport} loading={busy === 'export'} />
+          <Button title="Konto löschen" variant="danger" onPress={onDelete} loading={busy === 'delete'} />
+        </View>
       </Card>
 
       <Text style={styles.section}>Hilfe</Text>
@@ -61,4 +160,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   body: { color: colors.text, fontSize: 15, lineHeight: 22 },
+  muted: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  stack: { gap: spacing.md },
+  link: { color: colors.accent, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
 });
