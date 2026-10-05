@@ -12,6 +12,7 @@ import { friendlyError } from '../../lib/errors';
 import { formatDuration, formatEuro, formatWorkDays, parseAmount } from '../../lib/format';
 import { TITLE_MAX_LENGTH } from '../../lib/items';
 import type { Category, ItemStatus } from '../../lib/items';
+import { COOLDOWN_HOURS } from '../../lib/wishlist';
 import { LIMITS, computeHourlyRates, hoursForPrice, workDaysForHours } from '../../lib/wage';
 import { useApp } from '../../state/AppProvider';
 import { useItems } from '../../state/ItemsProvider';
@@ -62,7 +63,9 @@ export default function Calculator() {
       setFeedback(
         status === 'skipped'
           ? { tone: 'saved', text: `💪 Stark! Du hast dir ${duration} Arbeit gespart.` }
-          : { tone: 'bought', text: `Eingetragen: ${duration} Arbeit. Gönn es dir bewusst.` },
+          : status === 'wishlist'
+            ? { tone: 'saved', text: `⏳ Auf der Wunschliste. In ${COOLDOWN_HOURS} Stunden fragen wir dich nochmal, ob du ${duration} Arbeit dafür ausgeben willst.` }
+            : { tone: 'bought', text: `Eingetragen: ${duration} Arbeit. Gönn es dir bewusst.` },
       );
       setPriceText('');
       setTitle('');
@@ -153,6 +156,13 @@ export default function Calculator() {
               />
             </View>
           </View>
+          <Button
+            title={`⏳ Wunschliste (${COOLDOWN_HOURS} Std. warten)`}
+            variant="secondary"
+            onPress={() => onDecide('wishlist')}
+            loading={saving === 'wishlist'}
+            disabled={saving !== null}
+          />
         </>
       ) : !feedback ? (
         <Text style={styles.placeholder}>

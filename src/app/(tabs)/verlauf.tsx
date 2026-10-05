@@ -29,6 +29,8 @@ const STATUS_LABEL: Record<Item['status'], string> = {
 export default function History() {
   const { items, loading, errorMessage, reload, updateItemStatus, deleteItem } = useItems();
   const summary = useMemo(() => monthSummary(items), [items]);
+  // Wünsche mit laufender Bedenkzeit stehen auf der Wunschliste, nicht im Verlauf.
+  const decided = useMemo(() => items.filter((i) => i.status !== 'wishlist'), [items]);
 
   const onItemPress = (item: Item) => {
     const name = item.title ?? categoryInfo(item.category)?.label ?? 'Eintrag';
@@ -90,7 +92,7 @@ export default function History() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <FlatList
-        data={items}
+        data={decided}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
