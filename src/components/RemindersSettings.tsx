@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
+import { sendTestReminder } from '../lib/notifications';
 import type { ReminderPrefs } from '../lib/reminderPlan';
 import { useReminders } from '../state/RemindersProvider';
 import { Button } from './Button';
@@ -13,7 +14,11 @@ const ROWS: { key: keyof ReminderPrefs; title: string; text: string }[] = [
 ];
 
 export function RemindersSettings() {
-  const { prefs, permission, setPref } = useReminders();
+  const { prefs, permission, setPref, requestPermission } = useReminders();
+
+  const onTest = async () => {
+    if (await requestPermission()) await sendTestReminder();
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -43,6 +48,15 @@ export function RemindersSettings() {
           />
         </View>
       ))}
+      {__DEV__ ? (
+        <Button
+          title="🧪 Test-Erinnerung in 5 Sek. (nur Entwicklung)"
+          variant="secondary"
+          onPress={() => {
+            onTest().catch(() => undefined);
+          }}
+        />
+      ) : null}
     </View>
   );
 }

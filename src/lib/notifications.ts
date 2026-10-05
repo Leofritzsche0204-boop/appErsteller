@@ -149,3 +149,15 @@ export async function notifyBudgetOnce(level: BudgetLevel, key: string): Promise
 export async function cancelAllReminders(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
+
+/** Nur für Tests in der Entwickler-Version: Erinnerung in 5 Sekunden. */
+export async function sendTestReminder(): Promise<void> {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🧪 Test-Erinnerung',
+      body: 'Erinnerungen funktionieren! Antippen öffnet die Wunschliste.',
+      data: { url: '/wunschliste' },
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL_ID },
+  });
+}
