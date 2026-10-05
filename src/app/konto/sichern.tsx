@@ -68,7 +68,7 @@ export default function SecureAccount() {
       if (status.email && !status.pendingEmail) {
         setStep('password');
       } else {
-        setInfo('Noch nicht bestätigt. Gib den Code aus der E-Mail ein oder tippe auf den Link darin.');
+        setInfo('Noch nicht bestätigt. Tippe zuerst auf den Link in der E-Mail und versuche es dann erneut.');
       }
     });
 
@@ -99,18 +99,27 @@ export default function SecureAccount() {
             textContentType="emailAddress"
             autoCorrect={false}
           />
-          <Button title="Bestätigungscode senden" onPress={sendCode} loading={busy} />
+          <Button title="Bestätigungs-E-Mail senden" onPress={sendCode} loading={busy} />
         </>
       ) : null}
 
       {step === 'code' ? (
         <>
           <Text style={styles.intro}>
-            Wir haben eine E-Mail an <Text style={styles.bold}>{email}</Text> geschickt. Gib den Code
-            daraus hier ein. Schau auch im Spam-Ordner nach.
+            Wir haben eine E-Mail an <Text style={styles.bold}>{email}</Text> geschickt. Schau auch im
+            Spam-Ordner nach.
           </Text>
+          <Card>
+            <Text style={styles.stepText}>
+              1. Tippe in der E-Mail auf den Bestätigungslink.{'\n'}
+              2. Falls sich danach eine Fehlerseite im Browser öffnet: kein Problem, die Bestätigung hat
+              trotzdem geklappt.{'\n'}
+              3. Komm hierher zurück und tippe auf den Button.
+            </Text>
+          </Card>
+          <Button title="Ich habe auf den Link getippt" onPress={checkLink} loading={busy} />
           <TextField
-            label="Code aus der E-Mail"
+            label="Oder: Code aus der E-Mail (falls vorhanden)"
             placeholder="123456"
             value={code}
             onChangeText={setCode}
@@ -119,9 +128,10 @@ export default function SecureAccount() {
             textContentType="oneTimeCode"
             maxLength={10}
           />
-          <Button title="Code bestätigen" onPress={verify} loading={busy} />
-          <Button title="Ich habe auf den Link in der E-Mail getippt" variant="secondary" onPress={checkLink} disabled={busy} />
-          <Button title="Neuen Code senden" variant="secondary" onPress={sendCode} disabled={busy} />
+          {cleanCode(code).length >= 6 ? (
+            <Button title="Code bestätigen" variant="secondary" onPress={verify} disabled={busy} />
+          ) : null}
+          <Button title="E-Mail erneut senden" variant="secondary" onPress={sendCode} disabled={busy} />
           <Button title="Andere E-Mail-Adresse" variant="secondary" onPress={() => setStep('email')} disabled={busy} />
         </>
       ) : null}
@@ -175,5 +185,6 @@ const styles = StyleSheet.create({
   bold: { color: colors.text, fontWeight: '700' },
   info: { color: colors.text, fontSize: 14, lineHeight: 20 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
+  stepText: { color: colors.text, fontSize: 14, lineHeight: 21 },
   doneTitle: { color: colors.text, fontSize: 20, fontWeight: '800', marginBottom: spacing.xs },
 });

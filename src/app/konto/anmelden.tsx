@@ -1,4 +1,3 @@
-import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
@@ -60,14 +59,16 @@ export default function SignIn() {
         error={error}
       />
       <Button title="Anmelden" onPress={onSubmit} loading={busy} />
-      <Link href="/konto/passwort-vergessen" style={styles.link}>
-        Passwort vergessen?
-      </Link>
+      {/* "Passwort vergessen" braucht Code-E-Mails und damit einen eigenen E-Mail-Dienst
+          (kommt mit Phase 8). Der Screen konto/passwort-vergessen ist schon fertig. */}
+      <Text style={styles.note}>
+        Passwort vergessen? Das Zurücksetzen kommt mit einem der nächsten Updates.
+      </Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   intro: { color: colors.textMuted, fontSize: 15, lineHeight: 22 },
-  link: { color: colors.accent, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 8 },
+  note: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
 });
