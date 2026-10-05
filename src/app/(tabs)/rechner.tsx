@@ -17,6 +17,7 @@ import { COOLDOWN_HOURS } from '../../lib/wishlist';
 import { LIMITS, computeHourlyRates, hoursForPrice, workDaysForHours } from '../../lib/wage';
 import { useApp } from '../../state/AppProvider';
 import { useItems } from '../../state/ItemsProvider';
+import { useReminders } from '../../state/RemindersProvider';
 import { badgeMessage, useAchievements } from '../../state/useAchievements';
 
 type Feedback = { tone: 'saved' | 'bought'; text: string };
@@ -25,6 +26,7 @@ export default function Calculator() {
   const { profile, fixedCostsTotal } = useApp();
   const { items, createItem } = useItems();
   const { streak, badgesUnlockedBy } = useAchievements();
+  const { permission, prefs, requestPermission } = useReminders();
   const [priceText, setPriceText] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
@@ -86,6 +88,10 @@ export default function Calculator() {
       setPriceText('');
       setTitle('');
       setCategory(null);
+      // Beim ersten Wunsch fragen, ob wir nach der Bedenkzeit erinnern dürfen.
+      if (status === 'wishlist' && prefs.cooldown && permission === 'undetermined') {
+        requestPermission().catch(() => undefined);
+      }
     } catch (e) {
       setSaveError(friendlyError(e));
     } finally {

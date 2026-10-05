@@ -5,6 +5,7 @@ import { Alert, Share, StyleSheet, Text, View } from 'react-native';
 import { BudgetForm } from '../components/BudgetForm';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { RemindersSettings } from '../components/RemindersSettings';
 import { Screen } from '../components/Screen';
 import { WageForm } from '../components/WageForm';
 import { colors, spacing } from '../components/theme';
@@ -94,6 +95,11 @@ export default function Settings() {
       <Text style={styles.section}>Monatsbudget</Text>
       <Card>
         <BudgetForm />
+      </Card>
+
+      <Text style={styles.section}>Erinnerungen</Text>
+      <Card>
+        <RemindersSettings />
       </Card>
 
       <Text style={styles.section}>Konto</Text>
