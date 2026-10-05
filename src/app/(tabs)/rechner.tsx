@@ -17,12 +17,14 @@ import { COOLDOWN_HOURS } from '../../lib/wishlist';
 import { LIMITS, computeHourlyRates, hoursForPrice, workDaysForHours } from '../../lib/wage';
 import { useApp } from '../../state/AppProvider';
 import { useItems } from '../../state/ItemsProvider';
+import { badgeMessage, useAchievements } from '../../state/useAchievements';
 
 type Feedback = { tone: 'saved' | 'bought'; text: string };
 
 export default function Calculator() {
   const { profile, fixedCostsTotal } = useApp();
   const { items, createItem } = useItems();
+  const { streak, badgesUnlockedBy } = useAchievements();
   const [priceText, setPriceText] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
@@ -68,12 +70,18 @@ export default function Calculator() {
     try {
       const item = await createItem({ price: validPrice, status, title, category });
       const duration = formatDuration(item.hours);
+      const badges = badgeMessage(badgesUnlockedBy([item, ...items]));
       setFeedback(
         status === 'skipped'
-          ? { tone: 'saved', text: `💪 Stark! Du hast dir ${duration} Arbeit gespart.` }
+          ? { tone: 'saved', text: `💪 Stark! Du hast dir ${duration} Arbeit gespart.${badges}` }
           : status === 'wishlist'
             ? { tone: 'saved', text: `⏳ Auf der Wunschliste. In ${COOLDOWN_HOURS} Stunden fragen wir dich nochmal, ob du ${duration} Arbeit dafür ausgeben willst.` }
-            : { tone: 'bought', text: `Eingetragen: ${duration} Arbeit. Gönn es dir bewusst.` },
+            : {
+                tone: 'bought',
+                text:
+                  `Eingetragen: ${duration} Arbeit. Gönn es dir bewusst.` +
+                  (streak.current > 0 ? ` Deine Sparserie von ${streak.current} Tagen startet neu.` : ''),
+              },
       );
       setPriceText('');
       setTitle('');
@@ -89,11 +97,23 @@ export default function Calculator() {
     <Screen edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Time is Money</Text>
-        <Link href="/einstellungen" asChild>
-          <Pressable accessibilityRole="button" accessibilityLabel="Einstellungen" hitSlop={10}>
-            <Text style={styles.settings}>⚙️</Text>
-          </Pressable>
-        </Link>
+        <View style={styles.headerRight}>
+          <Link href="/statistik" asChild>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Sparserie: ${streak.current} Tage ohne Impulskauf`}
+              style={styles.streakChip}
+              hitSlop={6}
+            >
+              <Text style={styles.streakText}>🔥 {streak.current}</Text>
+            </Pressable>
+          </Link>
+          <Link href="/einstellungen" asChild>
+            <Pressable accessibilityRole="button" accessibilityLabel="Einstellungen" hitSlop={10}>
+              <Text style={styles.settings}>⚙️</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
 
       <TextField
@@ -209,6 +229,16 @@ const styles = StyleSheet.create({
   },
   title: { color: colors.text, fontSize: 26, fontWeight: '800' },
   settings: { fontSize: 24 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  streakChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  streakText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   result: { alignItems: 'center', paddingVertical: spacing.lg },
   resultLabel: { color: colors.textMuted, fontSize: 15 },
   resultValue: { color: colors.accent, fontSize: 44, fontWeight: '800' },

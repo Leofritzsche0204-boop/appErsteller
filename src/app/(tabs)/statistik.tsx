@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BadgeGrid, StreakLevelCard } from '../../components/Achievements';
 import { Card } from '../../components/Card';
 import { BudgetMeter, CategoryBars, MonthBars, StatTile } from '../../components/charts';
 import { Screen } from '../../components/Screen';
@@ -10,10 +11,13 @@ import { formatDuration } from '../../lib/format';
 import { budgetStatus, categorySpent, monthSummary, monthlyTotals, totalSavedHours } from '../../lib/stats';
 import { useApp } from '../../state/AppProvider';
 import { useItems } from '../../state/ItemsProvider';
+import { useAchievements } from '../../state/useAchievements';
 
 export default function Statistics() {
   const { profile } = useApp();
   const { items } = useItems();
+  const { streak, level, badges } = useAchievements();
+  const unlockedCount = badges.filter((b) => b.unlocked).length;
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -30,6 +34,8 @@ export default function Statistics() {
   return (
     <Screen edges={['top']}>
       <Text style={styles.title}>Statistik</Text>
+
+      <StreakLevelCard streak={streak} level={level} />
 
       <View style={styles.tiles}>
         <StatTile
@@ -70,6 +76,13 @@ export default function Statistics() {
         <Text style={styles.cardTitle}>Gekauft nach Kategorie</Text>
         <Text style={styles.muted}>Diesen Monat, in Arbeitsstunden</Text>
         <CategoryBars totals={stats.categories} />
+      </Card>
+
+      <Card>
+        <Text style={styles.cardTitle}>
+          Abzeichen ({unlockedCount}/{badges.length})
+        </Text>
+        <BadgeGrid statuses={badges} />
       </Card>
     </Screen>
   );

@@ -11,10 +11,12 @@ import type { Item } from '../../lib/items';
 import { useNow } from '../../lib/useNow';
 import { cooldownProgress, formatRemaining, remainingMs } from '../../lib/wishlist';
 import { useItems } from '../../state/ItemsProvider';
+import { badgeMessage, useAchievements } from '../../state/useAchievements';
 
 export default function Wishlist() {
   const { items, loading, errorMessage, reload, updateItemStatus, deleteItem } = useItems();
   const now = useNow();
+  const { badgesUnlockedBy } = useAchievements();
   const [busyId, setBusyId] = useState<string | null>(null);
 
   // Abgelaufene Bedenkzeit zuerst, dann nach verbleibender Zeit sortiert.
@@ -31,7 +33,10 @@ export default function Wishlist() {
     try {
       await updateItemStatus(item.id, status);
       if (status === 'skipped') {
-        Alert.alert('💪 Stark!', `Du hast dir ${formatDuration(item.hours)} Arbeit gespart.`);
+        // Server setzt die Entscheidungszeit; für die Abzeichen-Vorschau reicht "jetzt".
+        const decided = { ...item, status, decidedAt: new Date().toISOString() };
+        const badges = badgeMessage(badgesUnlockedBy(items.map((i) => (i.id === item.id ? decided : i))));
+        Alert.alert('💪 Stark!', `Du hast dir ${formatDuration(item.hours)} Arbeit gespart.${badges}`);
       }
     } catch (e) {
       Alert.alert('Das hat nicht geklappt', friendlyError(e));

@@ -10,6 +10,7 @@ export type Profile = WageSettings & {
   onboardedAt: string | null;
   /** Monatsbudget in Arbeitsstunden, null = kein Budget */
   monthlyBudgetHours: number | null;
+  createdAt: string;
 };
 
 export type FixedCost = {
@@ -28,6 +29,7 @@ type ProfileRow = {
   age_confirmed_at: string | null;
   onboarded_at: string | null;
   monthly_budget_hours: number | string | null;
+  created_at: string;
 };
 
 type FixedCostRow = {
@@ -37,7 +39,7 @@ type FixedCostRow = {
 };
 
 const PROFILE_COLUMNS =
-  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at, monthly_budget_hours';
+  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at, monthly_budget_hours, created_at';
 
 function mapProfile(row: ProfileRow): Profile {
   return {
@@ -50,6 +52,7 @@ function mapProfile(row: ProfileRow): Profile {
     ageConfirmedAt: row.age_confirmed_at,
     onboardedAt: row.onboarded_at,
     monthlyBudgetHours: toNumber(row.monthly_budget_hours),
+    createdAt: row.created_at,
   };
 }
 
