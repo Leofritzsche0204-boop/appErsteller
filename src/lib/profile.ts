@@ -8,6 +8,8 @@ export type Profile = WageSettings & {
   id: string;
   ageConfirmedAt: string | null;
   onboardedAt: string | null;
+  /** Monatsbudget in Arbeitsstunden, null = kein Budget */
+  monthlyBudgetHours: number | null;
 };
 
 export type FixedCost = {
@@ -25,6 +27,7 @@ type ProfileRow = {
   use_fixed_costs: boolean;
   age_confirmed_at: string | null;
   onboarded_at: string | null;
+  monthly_budget_hours: number | string | null;
 };
 
 type FixedCostRow = {
@@ -34,7 +37,7 @@ type FixedCostRow = {
 };
 
 const PROFILE_COLUMNS =
-  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at';
+  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at, monthly_budget_hours';
 
 function mapProfile(row: ProfileRow): Profile {
   return {
@@ -46,6 +49,7 @@ function mapProfile(row: ProfileRow): Profile {
     useFixedCosts: row.use_fixed_costs,
     ageConfirmedAt: row.age_confirmed_at,
     onboardedAt: row.onboarded_at,
+    monthlyBudgetHours: toNumber(row.monthly_budget_hours),
   };
 }
 
@@ -71,6 +75,7 @@ export async function fetchOrCreateProfile(userId: string): Promise<Profile> {
 export type ProfileUpdate = Partial<WageSettings> & {
   ageConfirmedAt?: string;
   onboardedAt?: string;
+  monthlyBudgetHours?: number | null;
 };
 
 export async function updateProfile(userId: string, update: ProfileUpdate): Promise<Profile> {
@@ -82,6 +87,7 @@ export async function updateProfile(userId: string, update: ProfileUpdate): Prom
   if (update.useFixedCosts !== undefined) row.use_fixed_costs = update.useFixedCosts;
   if (update.ageConfirmedAt !== undefined) row.age_confirmed_at = update.ageConfirmedAt;
   if (update.onboardedAt !== undefined) row.onboarded_at = update.onboardedAt;
+  if (update.monthlyBudgetHours !== undefined) row.monthly_budget_hours = update.monthlyBudgetHours;
 
   const { data, error } = await supabase
     .from('profiles')

@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../components/Button';
@@ -11,6 +11,7 @@ import { colors, spacing } from '../../components/theme';
 import { friendlyError } from '../../lib/errors';
 import { formatDuration, formatEuro, formatWorkDays, parseAmount } from '../../lib/format';
 import { TITLE_MAX_LENGTH } from '../../lib/items';
+import { budgetStatus, monthSummary } from '../../lib/stats';
 import type { Category, ItemStatus } from '../../lib/items';
 import { COOLDOWN_HOURS } from '../../lib/wishlist';
 import { LIMITS, computeHourlyRates, hoursForPrice, workDaysForHours } from '../../lib/wage';
@@ -21,7 +22,7 @@ type Feedback = { tone: 'saved' | 'bought'; text: string };
 
 export default function Calculator() {
   const { profile, fixedCostsTotal } = useApp();
-  const { createItem } = useItems();
+  const { items, createItem } = useItems();
   const [priceText, setPriceText] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
@@ -46,6 +47,13 @@ export default function Calculator() {
   const hours = validPrice != null && rate ? hoursForPrice(validPrice, rate) : null;
   const days = hours != null ? workDaysForHours(hours, profile?.weeklyHours ?? null) : null;
   const baseHours = validPrice != null && rates?.free != null ? hoursForPrice(validPrice, rates.base) : null;
+
+  // Monatsbudget: wie viel bleibt nach diesem Kauf?
+  const budget = useMemo(
+    () => budgetStatus(monthSummary(items).spentHours, profile?.monthlyBudgetHours ?? null),
+    [items, profile?.monthlyBudgetHours],
+  );
+  const remainingAfter = budget && hours != null ? budget.remaining - hours : null;
 
   const onPriceChange = (text: string) => {
     setPriceText(text);
@@ -125,6 +133,17 @@ export default function Calculator() {
             {baseHours != null ? (
               <Text style={styles.resultSub}>Ohne Fixkosten-Abzug: {formatDuration(baseHours)}</Text>
             ) : null}
+            {budget && remainingAfter != null ? (
+              remainingAfter < 0 ? (
+                <Text style={styles.budgetOver}>
+                  ⚠️ Damit liegst du {formatDuration(-remainingAfter)} über deinem Monatsbudget.
+                </Text>
+              ) : (
+                <Text style={styles.resultSub}>
+                  Danach bleiben {formatDuration(remainingAfter)} von {formatDuration(budget.budget)} Budget.
+                </Text>
+              )
+            ) : null}
           </Card>
 
           <TextField
@@ -193,7 +212,8 @@ const styles = StyleSheet.create({
   result: { alignItems: 'center', paddingVertical: spacing.lg },
   resultLabel: { color: colors.textMuted, fontSize: 15 },
   resultValue: { color: colors.accent, fontSize: 44, fontWeight: '800' },
-  resultSub: { color: colors.textMuted, fontSize: 15 },
+  resultSub: { color: colors.textMuted, fontSize: 15, textAlign: 'center' },
+  budgetOver: { color: colors.warning, fontSize: 15, fontWeight: '600', textAlign: 'center', marginTop: spacing.xs },
   decision: { flexDirection: 'row', gap: spacing.sm },
   decisionButton: { flex: 1 },
   feedbackSaved: { borderColor: colors.accent },

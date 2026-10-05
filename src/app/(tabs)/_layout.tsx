@@ -38,6 +38,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="statistik"
+        options={{
+          title: 'Statistik',
+          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="verlauf"
         options={{
           title: 'Verlauf',

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
+import { BudgetForm } from '../components/BudgetForm';
 import { Card } from '../components/Card';
 import { Screen } from '../components/Screen';
 import { WageForm } from '../components/WageForm';
@@ -18,6 +19,11 @@ export default function Settings() {
         submitLabel="Speichern"
         onSaved={() => (router.canGoBack() ? router.back() : router.replace('/rechner'))}
       />
+
+      <Text style={styles.section}>Monatsbudget</Text>
+      <Card>
+        <BudgetForm />
+      </Card>
 
       <Text style={styles.section}>Konto</Text>
       <Card>

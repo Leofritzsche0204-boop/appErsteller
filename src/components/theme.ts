@@ -11,6 +11,9 @@ export const colors = {
   accentText: '#04130A',
   warning: '#F59E0B',
   danger: '#EF4444',
+  // Diagramme: "gespart" hervorgehoben, "gekauft" bewusst zurückhaltend (geprüft auf Farbschwäche)
+  chartSaved: '#16A34A',
+  chartSpent: '#64748B',
 } as const;
 
 export const spacing = {

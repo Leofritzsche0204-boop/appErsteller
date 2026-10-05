@@ -18,6 +18,7 @@ export const LIMITS = {
   monthlyNet: { min: 1, max: 100000 },
   weeklyHours: { min: 1, max: 80 },
   price: { min: 0.01, max: 10000000 },
+  budgetHours: { min: 1, max: 744 },
   fixedCost: { min: 0.01, max: 100000 },
 } as const;
 
