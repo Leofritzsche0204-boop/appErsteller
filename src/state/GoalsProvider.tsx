@@ -1,17 +1,21 @@
-// Hält die Sparziele für die ganze App bereit.
+// Hält private und gemeinsame Sparziele für die ganze App bereit.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { friendlyError } from '../lib/errors';
+import { myLastContribution } from '../lib/goalMath';
 import {
   addContribution as apiAddContribution,
   createGoal as apiCreateGoal,
   deleteContribution as apiDeleteContribution,
   deleteGoal as apiDeleteGoal,
   fetchGoals,
+  inviteToGoal as apiInvite,
+  leaveGoal as apiLeave,
+  respondGoalInvite as apiRespond,
 } from '../lib/goals';
-import type { Goal } from '../lib/goals';
+import type { Goal, NewGoal } from '../lib/goals';
 import { useApp } from './AppProvider';
 
 type GoalsState = {
@@ -19,10 +23,13 @@ type GoalsState = {
   loading: boolean;
   errorMessage: string | null;
   reload: () => void;
-  createGoal: (input: { name: string; emoji: string | null; targetPrice: number }) => Promise<Goal>;
+  createGoal: (input: NewGoal) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   addContribution: (goalId: string, hours: number) => Promise<void>;
   undoLastContribution: (goalId: string) => Promise<void>;
+  invite: (goalId: string, friendUserId: string) => Promise<void>;
+  respondInvite: (goalId: string, accept: boolean) => Promise<void>;
+  leave: (goalId: string) => Promise<void>;
 };
 
 const GoalsContext = createContext<GoalsState | null>(null);
@@ -38,7 +45,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   // State wird erst in den Callbacks gesetzt, wenn die Daten da sind.
   const load = useCallback(() => {
     const id = ++loadId.current;
-    fetchGoals().then(
+    return fetchGoals().then(
       (result) => {
         if (id !== loadId.current) return;
         setGoals(result);
@@ -56,43 +63,60 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(() => {
     setLoading(true);
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
-    if (status === 'ready' && userId) load();
+    if (status === 'ready' && userId) void load();
   }, [status, userId, load]);
 
-  const replaceGoal = (updated: Goal) => setGoals((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+  // Nach jeder Änderung neu laden – so stimmen auch die Stunden der anderen Mitglieder.
+  const after = useCallback(
+    async (action: () => Promise<void>) => {
+      await action();
+      await load();
+    },
+    [load],
+  );
 
-  const createGoal = useCallback(async (input: { name: string; emoji: string | null; targetPrice: number }) => {
-    const created = await apiCreateGoal(input);
-    setGoals((prev) => [...prev, created]);
-    return created;
-  }, []);
-
-  const deleteGoal = useCallback(async (id: string) => {
-    await apiDeleteGoal(id);
-    setGoals((prev) => prev.filter((g) => g.id !== id));
-  }, []);
-
-  const addContribution = useCallback(async (goalId: string, hours: number) => {
-    replaceGoal(await apiAddContribution(goalId, hours));
-  }, []);
+  const createGoal = useCallback((input: NewGoal) => after(() => apiCreateGoal(input)), [after]);
+  const deleteGoal = useCallback((id: string) => after(() => apiDeleteGoal(id)), [after]);
+  const addContribution = useCallback(
+    (goalId: string, hours: number) => after(() => apiAddContribution(goalId, hours)),
+    [after],
+  );
+  const invite = useCallback((goalId: string, friendId: string) => after(() => apiInvite(goalId, friendId)), [after]);
+  const respondInvite = useCallback(
+    (goalId: string, accept: boolean) => after(() => apiRespond(goalId, accept)),
+    [after],
+  );
+  const leave = useCallback((goalId: string) => after(() => apiLeave(goalId)), [after]);
 
   const undoLastContribution = useCallback(
     async (goalId: string) => {
       const goal = goals.find((g) => g.id === goalId);
-      const last = goal?.contributions[goal.contributions.length - 1];
+      const last = goal ? myLastContribution(goal, userId) : null;
       if (!last) return;
-      replaceGoal(await apiDeleteContribution(goalId, last.id));
+      await after(() => apiDeleteContribution(last.id));
     },
-    [goals],
+    [goals, userId, after],
   );
 
   const value = useMemo<GoalsState>(
-    () => ({ goals, loading, errorMessage, reload, createGoal, deleteGoal, addContribution, undoLastContribution }),
-    [goals, loading, errorMessage, reload, createGoal, deleteGoal, addContribution, undoLastContribution],
+    () => ({
+      goals,
+      loading,
+      errorMessage,
+      reload,
+      createGoal,
+      deleteGoal,
+      addContribution,
+      undoLastContribution,
+      invite,
+      respondInvite,
+      leave,
+    }),
+    [goals, loading, errorMessage, reload, createGoal, deleteGoal, addContribution, undoLastContribution, invite, respondInvite, leave],
   );
 
   return <GoalsContext.Provider value={value}>{children}</GoalsContext.Provider>;

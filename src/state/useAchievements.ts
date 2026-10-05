@@ -4,18 +4,18 @@ import { useCallback, useMemo } from 'react';
 
 import { badgeStatuses, buildContext, computeStreak, levelFor, newlyUnlocked } from '../lib/achievements';
 import type { Badge } from '../lib/achievements';
-import { goalProgress } from '../lib/goalMath';
+import { activeGoals, goalProgress } from '../lib/goalMath';
 import type { Item } from '../lib/items';
 import { useApp } from './AppProvider';
 import { useGoals } from './GoalsProvider';
 import { useItems } from './ItemsProvider';
 
 export function useAchievements() {
-  const { profile } = useApp();
+  const { profile, session } = useApp();
   const { items } = useItems();
   const { goals } = useGoals();
   const createdAt = profile?.createdAt ?? new Date().toISOString();
-  const goalsReached = goals.filter((g) => goalProgress(g) >= 1).length;
+  const goalsReached = activeGoals(goals, session?.user.id ?? null).filter((g) => goalProgress(g) >= 1).length;
 
   const summary = useMemo(() => {
     const streak = computeStreak(items, createdAt);

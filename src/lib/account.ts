@@ -70,7 +70,9 @@ export async function confirmPasswordResetCode(email: string, code: string): Pro
 
 /** Alle eigenen Daten als lesbares JSON (DSGVO: Recht auf Datenübertragbarkeit). */
 export async function exportMyData(): Promise<string> {
-  const [user, profile, fixedCosts, items, goals] = await Promise.all([
+  const { data: sessionData } = await supabase.auth.getSession();
+  const myId = sessionData.session?.user.id ?? '';
+  const [user, profile, fixedCosts, items, goals, contributions] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from('profiles').select('*').maybeSingle(),
     supabase.from('fixed_costs').select('name, amount_monthly, created_at').order('created_at'),
@@ -81,10 +83,11 @@ export async function exportMyData(): Promise<string> {
       .limit(10000),
     supabase
       .from('goals')
-      .select('name, emoji, target_price, target_hours, created_at, goal_contributions (hours, created_at)')
+      .select('name, emoji, is_shared, target_price, target_hours, created_at')
       .order('created_at'),
+    supabase.from('goal_contributions').select('goal_id, hours, created_at').eq('user_id', myId).order('created_at'),
   ]);
-  for (const r of [profile, fixedCosts, items, goals]) {
+  for (const r of [profile, fixedCosts, items, goals, contributions]) {
     if (r.error) throw r.error;
   }
   if (user.error) throw user.error;
@@ -102,7 +105,9 @@ export async function exportMyData(): Promise<string> {
       profil: profile.data,
       fixkosten: fixedCosts.data,
       eintraege: items.data,
+      // Sichtbare Ziele (eigene und gemeinsame) und nur die eigenen Zuordnungen
       sparziele: goals.data,
+      eigeneZuordnungen: contributions.data,
     },
     null,
     2,

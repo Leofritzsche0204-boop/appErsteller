@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,9 +9,10 @@ import { TextField } from '../../components/TextField';
 import { colors, radius, spacing } from '../../components/theme';
 import { friendlyError } from '../../lib/errors';
 import { formatDuration, formatEuro, parseAmount } from '../../lib/format';
-import { availableHours, goalProgress } from '../../lib/goalMath';
+import { activeGoals, availableHours, goalProgress, goalRole, myLastContribution } from '../../lib/goalMath';
 import type { Goal } from '../../lib/goals';
 import { totalSavedHours } from '../../lib/stats';
+import { useApp } from '../../state/AppProvider';
 import { useGoals } from '../../state/GoalsProvider';
 import { useItems } from '../../state/ItemsProvider';
 
@@ -20,32 +21,67 @@ const floor2 = (n: number) => Math.floor(n * 100) / 100;
 
 export default function Goals() {
   const { items } = useItems();
-  const { goals, loading, errorMessage, reload, deleteGoal, addContribution, undoLastContribution } = useGoals();
+  const { session } = useApp();
+  const myId = session?.user.id ?? null;
+  const {
+    goals,
+    loading,
+    errorMessage,
+    reload,
+    deleteGoal,
+    addContribution,
+    undoLastContribution,
+    respondInvite,
+    leave,
+  } = useGoals();
   const [openGoalId, setOpenGoalId] = useState<string | null>(null);
 
-  const available = useMemo(() => floor2(availableHours(totalSavedHours(items), goals)), [items, goals]);
+  const available = useMemo(() => floor2(availableHours(totalSavedHours(items), goals, myId)), [items, goals, myId]);
+  const active = useMemo(() => activeGoals(goals, myId), [goals, myId]);
+  const invitations = goals.filter((g) => goalRole(g, myId) === 'invited');
+
+  const run = (action: () => Promise<void>) =>
+    action().catch((e) => Alert.alert('Das hat nicht geklappt', friendlyError(e)));
 
   const onMore = (goal: Goal) => {
-    const run = (action: () => Promise<void>) =>
-      action().catch((e) => Alert.alert('Das hat nicht geklappt', friendlyError(e)));
+    const role = goalRole(goal, myId);
     const buttons: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
-    if (goal.contributions.length > 0) {
-      const last = goal.contributions[goal.contributions.length - 1];
+    const last = myLastContribution(goal, myId);
+    if (last) {
       buttons.push({
-        text: `Letzte ${formatDuration(last.hours)} zurücknehmen`,
+        text: `Meine letzten ${formatDuration(last.hours)} zurücknehmen`,
         onPress: () => run(() => undoLastContribution(goal.id)),
       });
     }
-    buttons.push({
-      text: 'Ziel löschen',
-      style: 'destructive',
-      onPress: () =>
-        Alert.alert('Ziel löschen?', 'Die zugeordneten Stunden werden wieder frei.', [
-          { text: 'Abbrechen', style: 'cancel' },
-          { text: 'Löschen', style: 'destructive', onPress: () => run(() => deleteGoal(goal.id)) },
-        ]),
-    });
+    if (role === 'owner') {
+      buttons.push({
+        text: 'Ziel löschen',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(
+            'Ziel löschen?',
+            goal.isShared
+              ? 'Das Ziel wird für alle Mitglieder gelöscht. Alle zugeordneten Stunden werden wieder frei.'
+              : 'Die zugeordneten Stunden werden wieder frei.',
+            [
+              { text: 'Abbrechen', style: 'cancel' },
+              { text: 'Löschen', style: 'destructive', onPress: () => run(() => deleteGoal(goal.id)) },
+            ],
+          ),
+      });
+    } else if (role === 'member') {
+      buttons.push({
+        text: 'Ziel verlassen',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Ziel verlassen?', 'Deine Stunden werden wieder frei.', [
+            { text: 'Abbrechen', style: 'cancel' },
+            { text: 'Verlassen', style: 'destructive', onPress: () => run(() => leave(goal.id)) },
+          ]),
+      });
+    }
     buttons.push({ text: 'Abbrechen', style: 'cancel' });
+    // Höchstens 3 Knöpfe – mehr zeigt Android nicht an.
     Alert.alert(`${goal.emoji ?? '⭐'} ${goal.name}`, undefined, buttons);
   };
 
@@ -71,7 +107,7 @@ export default function Goals() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <FlatList
-        data={goals}
+        data={active}
         keyExtractor={(g) => g.id}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
@@ -92,6 +128,28 @@ export default function Goals() {
                 </Text>
               ) : null}
             </Card>
+
+            {invitations.map((g) => {
+              const owner = g.members.find((m) => m.userId === g.ownerId);
+              return (
+                <Card key={g.id} style={styles.inviteCard}>
+                  <Text style={styles.inviteTitle}>
+                    {owner?.avatarEmoji ?? '🙂'} {owner?.username ?? 'Jemand'} lädt dich ein
+                  </Text>
+                  <Text style={styles.muted}>
+                    {g.emoji ?? '⭐'} {g.name} · gemeinsam {formatDuration(g.targetHours)} sparen
+                  </Text>
+                  <View style={styles.inviteButtons}>
+                    <View style={styles.flex}>
+                      <Button title="Mitmachen" onPress={() => run(() => respondInvite(g.id, true))} />
+                    </View>
+                    <View style={styles.flex}>
+                      <Button title="Ablehnen" variant="secondary" onPress={() => run(() => respondInvite(g.id, false))} />
+                    </View>
+                  </View>
+                </Card>
+              );
+            })}
           </View>
         }
         ListEmptyComponent={
@@ -109,6 +167,7 @@ export default function Goals() {
         renderItem={({ item }) => (
           <GoalCard
             goal={item}
+            myId={myId}
             available={available}
             open={openGoalId === item.id}
             onToggle={() => setOpenGoalId((id) => (id === item.id ? null : item.id))}
@@ -126,6 +185,7 @@ export default function Goals() {
 
 type CardProps = {
   goal: Goal;
+  myId: string | null;
   available: number;
   open: boolean;
   onToggle: () => void;
@@ -133,7 +193,8 @@ type CardProps = {
   onMore: () => void;
 };
 
-function GoalCard({ goal, available, open, onToggle, onAllocate, onMore }: CardProps) {
+function GoalCard({ goal, myId, available, open, onToggle, onAllocate, onMore }: CardProps) {
+  const isOwner = goal.ownerId === myId;
   const progress = goalProgress(goal);
   const reached = progress >= 1;
   const missing = floor2(Math.max(0, goal.targetHours - goal.allocatedHours));
@@ -174,7 +235,9 @@ function GoalCard({ goal, available, open, onToggle, onAllocate, onMore }: CardP
             {goal.name}
           </Text>
           <Text style={styles.muted}>
-            {formatEuro(goal.targetPrice)} · {formatDuration(goal.targetHours)} Arbeit
+            {goal.isShared
+              ? `👥 Gemeinsam · Ziel ${formatDuration(goal.targetHours)}`
+              : `${formatEuro(goal.targetPrice ?? 0)} · ${formatDuration(goal.targetHours)} Arbeit`}
           </Text>
         </View>
         <Pressable onPress={onMore} accessibilityRole="button" accessibilityLabel="Weitere Optionen" hitSlop={10}>
@@ -195,6 +258,30 @@ function GoalCard({ goal, available, open, onToggle, onAllocate, onMore }: CardP
         </Text>
         <Text style={styles.progressPercent}>{Math.floor(progress * 100)} %</Text>
       </View>
+
+      {goal.isShared ? (
+        <View style={styles.members}>
+          {goal.members
+            .slice()
+            .sort((a, b) => b.hours - a.hours)
+            .map((m) => (
+              <View key={m.userId} style={styles.memberRow}>
+                <Text style={styles.memberName} numberOfLines={1}>
+                  {m.avatarEmoji ?? '🙂'} {m.username ?? 'Unbekannt'}
+                  {m.userId === myId ? ' (du)' : ''}
+                </Text>
+                <Text style={styles.memberHours}>
+                  {m.status === 'invited' ? 'eingeladen' : formatDuration(m.hours)}
+                </Text>
+              </View>
+            ))}
+          {isOwner ? (
+            <Pressable onPress={() => router.push(`/ziel-einladen/${goal.id}`)} accessibilityRole="button" hitSlop={6}>
+              <Text style={styles.inviteLink}>＋ Freunde einladen</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {reached ? (
         <Text style={styles.reached}>🎉 Ziel erreicht! Du hast es dir verdient.</Text>
@@ -298,4 +385,13 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  members: { gap: 6, paddingTop: spacing.xs },
+  memberRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  memberName: { color: colors.text, fontSize: 14, flex: 1 },
+  memberHours: { color: colors.textMuted, fontSize: 14 },
+  inviteLink: { color: colors.accent, fontSize: 14, fontWeight: '700', paddingTop: 4 },
+  inviteCard: { borderColor: colors.accent },
+  inviteTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  inviteButtons: { flexDirection: 'row', gap: spacing.sm },
+  flex: { flex: 1 },
 });

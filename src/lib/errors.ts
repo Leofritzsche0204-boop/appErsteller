@@ -51,6 +51,10 @@ export function friendlyError(error: unknown): string {
   if (/profiles_username_lower_idx/.test(message) || (code === '23505' && /username/.test(message))) {
     return 'Dieser Benutzername ist schon vergeben.';
   }
+  if (/not_friends/.test(message)) return 'Du kannst nur Freunde einladen.';
+  if (/goal_full/.test(message)) return 'Das Ziel hat schon die maximale Anzahl an Mitgliedern.';
+  if (/invite_not_found/.test(message)) return 'Diese Einladung gibt es nicht mehr.';
+  if (/owner_cannot_leave/.test(message)) return 'Als Ersteller kannst du das Ziel nur löschen, nicht verlassen.';
   if (/request_not_found/.test(message)) return 'Diese Anfrage gibt es nicht mehr.';
   if (/too_many_requests/.test(message)) return 'Du hast zu viele offene Anfragen. Warte, bis welche angenommen werden.';
   if (/wage_not_configured/.test(message)) {

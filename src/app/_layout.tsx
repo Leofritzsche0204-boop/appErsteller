@@ -51,6 +51,10 @@ export default function RootLayout() {
                     options={{ title: 'Passwort vergessen', headerBackTitle: 'Zurück' }}
                   />
                   <Stack.Screen
+                    name="ziel-einladen/[id]"
+                    options={{ title: 'Freunde einladen', presentation: 'modal', headerBackTitle: 'Zurück' }}
+                  />
+                  <Stack.Screen
                     name="ziel-neu"
                     options={{ title: 'Neues Sparziel', presentation: 'modal', headerBackTitle: 'Zurück' }}
                   />
