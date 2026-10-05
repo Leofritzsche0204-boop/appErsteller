@@ -38,6 +38,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="ziele"
+        options={{
+          title: 'Ziele',
+          tabBarIcon: ({ color, size }) => <Ionicons name="flag-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="statistik"
         options={{
           title: 'Statistik',

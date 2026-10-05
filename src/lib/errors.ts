@@ -22,6 +22,12 @@ export function friendlyError(error: unknown): string {
   if (/cannot_move_back_to_wishlist/.test(message)) {
     return 'Entschiedene Einträge können nicht zurück auf die Wunschliste.';
   }
+  if (/not_enough_saved_hours/.test(message)) {
+    return 'So viele gesparte Stunden hast du noch nicht übrig.';
+  }
+  if (/goal_not_found/.test(message)) {
+    return 'Dieses Ziel gibt es nicht mehr.';
+  }
   if (code === '23514') {
     return 'Ein Wert liegt außerhalb des erlaubten Bereichs.';
   }
