@@ -2,15 +2,15 @@ import { useMemo } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
-import { colors, radius, spacing } from '../../components/theme';
-import { friendlyError } from '../../lib/errors';
-import { formatDuration, formatEuro } from '../../lib/format';
-import { categoryInfo } from '../../lib/items';
-import type { Item } from '../../lib/items';
-import { monthSummary } from '../../lib/stats';
-import { useItems } from '../../state/ItemsProvider';
+import { Button } from '../components/Button';
+import { Card } from '../components/Card';
+import { colors, radius, spacing } from '../components/theme';
+import { friendlyError } from '../lib/errors';
+import { formatDuration, formatEuro } from '../lib/format';
+import { categoryInfo } from '../lib/items';
+import type { Item } from '../lib/items';
+import { monthSummary } from '../lib/stats';
+import { useItems } from '../state/ItemsProvider';
 
 const dateFormatter = new Intl.DateTimeFormat('de-DE', {
   day: '2-digit',
@@ -54,7 +54,6 @@ export default function History() {
 
   const header = (
     <View style={styles.headerWrap}>
-      <Text style={styles.title}>Verlauf</Text>
       <View style={styles.summaryRow}>
         <Card style={[styles.summaryCard, styles.summarySaved]}>
           <Text style={styles.summaryLabel}>Diesen Monat gespart</Text>
@@ -72,7 +71,7 @@ export default function History() {
 
   if (loading && items.length === 0) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <ActivityIndicator color={colors.accent} size="large" />
       </SafeAreaView>
     );
@@ -80,7 +79,7 @@ export default function History() {
 
   if (errorMessage && items.length === 0) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <Text style={styles.empty}>{errorMessage}</Text>
         <View style={styles.retry}>
           <Button title="Erneut versuchen" onPress={reload} />
@@ -90,7 +89,7 @@ export default function History() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <FlatList
         data={decided}
         keyExtractor={(item) => item.id}
@@ -154,7 +153,6 @@ const styles = StyleSheet.create({
   retry: { alignSelf: 'stretch' },
   list: { padding: spacing.lg, gap: spacing.sm, width: '100%', maxWidth: 560, alignSelf: 'center' },
   headerWrap: { gap: spacing.md, marginBottom: spacing.sm },
-  title: { color: colors.text, fontSize: 26, fontWeight: '800', paddingTop: spacing.sm },
   summaryRow: { flexDirection: 'row', gap: spacing.sm },
   summaryCard: { flex: 1, gap: 2 },
   summarySaved: { borderColor: colors.accent },

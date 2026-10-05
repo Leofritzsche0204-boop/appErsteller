@@ -11,6 +11,9 @@ export type Profile = WageSettings & {
   /** Monatsbudget in Arbeitsstunden, null = kein Budget */
   monthlyBudgetHours: number | null;
   createdAt: string;
+  /** Für Freunde sichtbar; null, solange noch keiner festgelegt ist */
+  username: string | null;
+  avatarEmoji: string | null;
 };
 
 export type FixedCost = {
@@ -30,6 +33,8 @@ type ProfileRow = {
   onboarded_at: string | null;
   monthly_budget_hours: number | string | null;
   created_at: string;
+  username: string | null;
+  avatar_emoji: string | null;
 };
 
 type FixedCostRow = {
@@ -39,7 +44,7 @@ type FixedCostRow = {
 };
 
 const PROFILE_COLUMNS =
-  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at, monthly_budget_hours, created_at';
+  'id, wage_mode, hourly_wage, monthly_net, weekly_hours, use_fixed_costs, age_confirmed_at, onboarded_at, monthly_budget_hours, created_at, username, avatar_emoji';
 
 function mapProfile(row: ProfileRow): Profile {
   return {
@@ -53,6 +58,8 @@ function mapProfile(row: ProfileRow): Profile {
     onboardedAt: row.onboarded_at,
     monthlyBudgetHours: toNumber(row.monthly_budget_hours),
     createdAt: row.created_at,
+    username: row.username,
+    avatarEmoji: row.avatar_emoji,
   };
 }
 
@@ -79,6 +86,8 @@ export type ProfileUpdate = Partial<WageSettings> & {
   ageConfirmedAt?: string;
   onboardedAt?: string;
   monthlyBudgetHours?: number | null;
+  username?: string;
+  avatarEmoji?: string;
 };
 
 export async function updateProfile(userId: string, update: ProfileUpdate): Promise<Profile> {
@@ -91,6 +100,8 @@ export async function updateProfile(userId: string, update: ProfileUpdate): Prom
   if (update.ageConfirmedAt !== undefined) row.age_confirmed_at = update.ageConfirmedAt;
   if (update.onboardedAt !== undefined) row.onboarded_at = update.onboardedAt;
   if (update.monthlyBudgetHours !== undefined) row.monthly_budget_hours = update.monthlyBudgetHours;
+  if (update.username !== undefined) row.username = update.username.trim();
+  if (update.avatarEmoji !== undefined) row.avatar_emoji = update.avatarEmoji;
 
   const { data, error } = await supabase
     .from('profiles')

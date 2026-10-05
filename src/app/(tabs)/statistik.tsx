@@ -72,6 +72,10 @@ export default function Statistics() {
         <MonthBars months={stats.months} />
       </Card>
 
+      <Link href="/verlauf" style={styles.historyLink}>
+        Alle Einträge ansehen →
+      </Link>
+
       <Card>
         <Text style={styles.cardTitle}>Gekauft nach Kategorie</Text>
         <Text style={styles.muted}>Diesen Monat, in Arbeitsstunden</Text>
@@ -95,4 +99,5 @@ const styles = StyleSheet.create({
   muted: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   noBudget: { gap: spacing.sm },
   link: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+  historyLink: { color: colors.accent, fontSize: 15, fontWeight: '700', textAlign: 'center', paddingVertical: spacing.xs },
 });

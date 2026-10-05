@@ -42,6 +42,17 @@ export function friendlyError(error: unknown): string {
   if (/email rate limit|over_email_send_rate_limit/i.test(message) || code === 'over_email_send_rate_limit') {
     return 'Es wurden gerade zu viele E-Mails verschickt. Bitte warte etwas und versuche es dann erneut.';
   }
+  // Freunde
+  if (/account_not_secured/.test(message)) return 'Sichere zuerst dein Konto mit E-Mail und Passwort.';
+  if (/username_required/.test(message)) return 'Leg zuerst einen Benutzernamen fest.';
+  if (/username_not_found/.test(message)) return 'Diesen Benutzernamen gibt es nicht. Achte auf die genaue Schreibweise.';
+  if (/cannot_add_self/.test(message)) return 'Das bist du selbst. 😉';
+  if (/username_reserved/.test(message)) return 'Dieser Name ist reserviert.';
+  if (/profiles_username_lower_idx/.test(message) || (code === '23505' && /username/.test(message))) {
+    return 'Dieser Benutzername ist schon vergeben.';
+  }
+  if (/request_not_found/.test(message)) return 'Diese Anfrage gibt es nicht mehr.';
+  if (/too_many_requests/.test(message)) return 'Du hast zu viele offene Anfragen. Warte, bis welche angenommen werden.';
   if (/wage_not_configured/.test(message)) {
     return 'Bitte richte zuerst deinen Lohn in den Einstellungen ein.';
   }
